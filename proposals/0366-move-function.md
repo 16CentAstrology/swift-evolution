@@ -3,13 +3,13 @@
 * Proposal: [SE-0366](0366-move-function.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
-* Implementation: Implemented on main as stdlib SPI (`_move` instead of `consume` keyword)
+* Status: **Implemented (Swift 5.9)**
+* Implementation: in main branch of compiler
 * Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic/53983)) ([first review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0366-move-operation-use-after-move-diagnostic/59687)) ([second review](https://forums.swift.org/t/se-0366-second-review-take-operator-to-end-the-lifetime-of-a-variable-binding/61021)) ([third review](https://forums.swift.org/t/combined-se-0366-third-review-and-se-0377-second-review-rename-take-taking-to-consume-consuming/61904)), ([acceptance](https://forums.swift.org/t/accepted-se-0366-consume-operator-to-end-the-lifetime-of-a-variable-binding/62758))
 * Previous Revisions:
-  * [1](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
-  * [2](https://github.com/apple/swift-evolution/blob/43849aa9ae3e87c434866c5a5e389af67537ca26/proposals/0366-move-function.md)
-  * [3](https://github.com/apple/swift-evolution/blob/7af91127d693bffcb01aa87978d75d5a3170c4d1/proposals/0366-move-function.md)
+  * [1](https://github.com/swiftlang/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
+  * [2](https://github.com/swiftlang/swift-evolution/blob/43849aa9ae3e87c434866c5a5e389af67537ca26/proposals/0366-move-function.md)
+  * [3](https://github.com/swiftlang/swift-evolution/blob/7af91127d693bffcb01aa87978d75d5a3170c4d1/proposals/0366-move-function.md)
 
 ## Introduction
 
@@ -124,14 +124,14 @@ func test() {
 
 The `consume x` operator syntax deliberately mirrors the
 proposed [ownership modifier](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
-parameter syntax, `(x: consume T)`, because the caller-side behavior of `consume`
-operator is analogous to a callee’s behavior receiving a `consume` parameter.
+parameter syntax, `(x: consuming T)`, because the caller-side behavior of `consume`
+operator is analogous to a callee’s behavior receiving a `consuming` parameter.
 `doStuffUniquely(with:)` can use the `consume` operator, combined with
-the `consume` parameter modifier, to preserve the uniqueness of the parameter
+the `consuming` parameter modifier, to preserve the uniqueness of the parameter
 as it moves it into its own local variable for mutation:
 
 ```swift
-func doStuffUniquely(with value: consume [Int]) {
+func doStuffUniquely(with value: consuming [Int]) {
   // If we received the last remaining reference to `value`, we'd like
   // to be able to efficiently update it without incurring more copies.
   var newValue = consume value
@@ -173,7 +173,7 @@ of `doStuffUniquely` after being consumed to initialize `newValue`, they will
 get an error:
 
 ```swift
-func doStuffUniquely(with value: consume [Int]) {
+func doStuffUniquely(with value: consuming [Int]) {
   // If we received the last remaining reference to `value`, we'd like
   // to be able to efficiently update it without incurring more copies.
   var newValue = consume value
@@ -369,7 +369,7 @@ None, this is additive.
 
 ### Alternative spellings
 
-The [first reviewed revision](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
+The [first reviewed revision](https://github.com/swiftlang/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
 of this proposal offered `move(x)` as a special
 function with semantics recognized by the compiler. Based on initial feedback,
 we pivoted to the contextual keyword spelling.  As a function, this operation
@@ -723,11 +723,11 @@ Thanks to Nate Chandler, Tim Kientzle, and Holly Borla for their help with this!
 
 ## Revision history
 
-Changes from the [third revision](https://github.com/apple/swift-evolution/blob/7af91127d693bffcb01aa87978d75d5a3170c4d1/proposals/0366-move-function.md):
+Changes from the [third revision](https://github.com/swiftlang/swift-evolution/blob/7af91127d693bffcb01aa87978d75d5a3170c4d1/proposals/0366-move-function.md):
 
 - `take` is renamed again to `consume`.
 
-Changes from the [second revision](https://github.com/apple/swift-evolution/blob/43849aa9ae3e87c434866c5a5e389af67537ca26/proposals/0366-move-function.md):
+Changes from the [second revision](https://github.com/swiftlang/swift-evolution/blob/43849aa9ae3e87c434866c5a5e389af67537ca26/proposals/0366-move-function.md):
 
 - `move` is renamed to `take`.
 - Dropping a value without using it now requires an explicit
@@ -745,7 +745,7 @@ Changes from the [second revision](https://github.com/apple/swift-evolution/blob
   parameters to be used with the `take` operator if the parameter
   declaration is `take` or `inout`.
 
-Changes from the [first revision](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md):
+Changes from the [first revision](https://github.com/swiftlang/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md):
 
 - `move x` is now proposed as a contextual keyword, instead of a magic function
   `move(x)`.
