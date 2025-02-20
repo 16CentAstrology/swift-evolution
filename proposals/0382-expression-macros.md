@@ -3,17 +3,17 @@
 * Proposal: [SE-0382](0382-expression-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`. An [example macro repository](https://github.com/DougGregor/swift-macro-examples) provides a way to experiment with this feature.
-* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861)) ([review #1](https://forums.swift.org/t/se-0382-expression-macros/62090)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0382-expression-macros/62898)) ([pitch #3](https://forums.swift.org/t/se-0382-expression-macros-mini-pitch-for-updates/62810)) ([review #2](https://forums.swift.org/t/se-0382-second-review-expression-macros/63064)) ([acceptance](https://forums.swift.org/t/accepted-se-0382-expression-macros/63495))
+* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861)) ([review #1](https://forums.swift.org/t/se-0382-expression-macros/62090)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0382-expression-macros/62898)) ([pitch #3](https://forums.swift.org/t/se-0382-expression-macros-mini-pitch-for-updates/62810)) ([review #2](https://forums.swift.org/t/se-0382-second-review-expression-macros/63064)) ([acceptance](https://forums.swift.org/t/accepted-se-0382-expression-macros/63495)) ([post-acceptance update](https://forums.swift.org/t/update-on-se-0382-and-se-0389-expression-macros-and-attached-macros/74094))
 
 ## Introduction
 
-Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
+Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitrary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
 ## Motivation
 
-Expression macros are one part of the [vision for macros in Swift](https://github.com/apple/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. Expressions in particular are an area where the language already provides decent abstractions for factoring out runtime behavior, because one can create a function that you call as an expression from anywhere. However, with a few hard-coded exceptions like `#file` and `#line`, an expression cannot reason about or modify the source code of the program being compiled. Such use cases will require external source-generating tools, which don't often integrate cleanly with other tooling.
+Expression macros are one part of the [vision for macros in Swift](https://github.com/swiftlang/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. Expressions in particular are an area where the language already provides decent abstractions for factoring out runtime behavior, because one can create a function that you call as an expression from anywhere. However, with a few hard-coded exceptions like `#file` and `#line`, an expression cannot reason about or modify the source code of the program being compiled. Such use cases will require external source-generating tools, which don't often integrate cleanly with other tooling.
 
 ## Proposed solution
 
@@ -92,7 +92,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
@@ -107,7 +107,7 @@ Let's continue with the implementation of the `stringify` macro. It's a new type
 ```swift
 import SwiftSyntax
 import SwiftSyntaxBuilder
-import _SwiftSyntaxMacros
+import SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
   public static func expansion(
@@ -155,7 +155,7 @@ macro-function-signature-result -> '->' type
 macro-definition -> '=' expression
 ```
 
-The `@freestanding(expression)` attribute applies only to macros. It indicates that the macro is an expression macro. The "freestanding" terminology comes from the [macros vision document](https://github.com/apple/swift-evolution/pull/1927), and is used to describe macros that are expanded with the leading `#` syntax.
+The `@freestanding(expression)` attribute applies only to macros. It indicates that the macro is an expression macro. The "freestanding" terminology comes from the [macros vision document](https://github.com/swiftlang/swift-evolution/pull/1927), and is used to describe macros that are expanded with the leading `#` syntax.
 
 Macro signatures are function-like, with a parameter clause (that may be empty) and an optional result type.
 
@@ -183,11 +183,11 @@ primary-expression -> macro-expansion-expression
 macro-expansion-expression -> '#' identifier generic-argument-clause[opt] function-call-argument-clause[opt] trailing-closures[opt]
 ```
 
-The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros. The macro referenced by the `identifier` must be an an expression macro, as indicated by `@freestanding(expression)` on the corresponding macro declaration.
+The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros. The macro referenced by the `identifier` must be an expression macro, as indicated by `@freestanding(expression)` on the corresponding macro declaration.
 
-Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` were provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
+Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` was provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
 
-When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call, and does not involve the macro definition.
+When a macro expansion is encountered in the source code, its expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call, and does not involve the macro definition.
 
 The second phase is the macro expansion phase, during which the syntax of the macro arguments is provided to the macro definition. For builtin-macro definitions, the behavior at this point depends on the semantics of the macro, e.g., the `externalMacro` macro invokes the external program and provides it with the source code of the macro expansion. For other macros, the arguments are substituted into the `macro-expansion-expression` of the definition. For example:
 
@@ -213,7 +213,7 @@ Macro expansion expressions can occur within the arguments to a macro. For examp
 #addBlocker(#stringify(1 + 2))
 ```
 
-The first phase of the macro type-check does not perform any macro expansion: the macro expansion expression `#stringify(1 + 2)` will infer that it's `T` is `Int`, and will produce a value of type `(Int, String)`. The `addBlocker` macro expansion expression will infer that it's `T` is `(Int, String)`, and the result is the same.
+The first phase of the macro type-check does not perform any macro expansion: the macro expansion expression `#stringify(1 + 2)` will infer that its `T` is `Int`, and will produce a value of type `(Int, String)`. The `addBlocker` macro expansion expression will infer that its `T` is `(Int, String)`, and the result is the same.
 
 The second phase of macro expansions occurs outside-in. First, the `addBlocker` macro is expanded, to `#prohibitBinaryOperators(#stringify(1 + 2), operators: ["+"])`. Then, the `prohibitBinaryOperators` macro is expanded given those (textual) arguments. The expansion result it produces will be type-checked, which will end up type-checking `#stringify(1 + 2)` again and, finally, expanding `#stringify(1 + 2)`.
 
@@ -250,7 +250,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
@@ -259,8 +259,6 @@ The `FreestandingMacroExpansionSyntax` protocol is the `swift-syntax` node descr
 Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`, returning the new expression as a syntax node.
 
 If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` operation can throw an error rather than try to produce a new syntax node. The compiler will then report the error to the user. More detailed diagnostics can be provided via the macro expansion context.
-
-The macro expansion operation is asynchronous, to account for potentially-asynchronous operations that will eventually be added to `MacroExpansionContext`. For example, operations that require additional communication with the compiler to get types of subexpressions, access files in the program, and so on.
 
 #### `MacroExpansionContext`
 
@@ -391,7 +389,7 @@ We propose to introduce a number of macro declarations into the Swift standard l
 @freestanding(expression) macro dsohandle() -> UnsafeRawPointer
 ```
 
-The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where `#file` behaves like `#fileID` vs. behaving like [`#filePath`](https://github.com/apple/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
+The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where `#file` behaves like `#fileID` vs. behaving like [`#filePath`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
 
 The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressibleBy*` protocol. However, the implementations above would fail to type-check code like this:
 
@@ -432,13 +430,13 @@ The object literals allow one to reference a resource in a program of various ki
 
 ### Sandboxing macro implementations
 
-The details of how macro implementation modules are built and provided to the compiler will be left to a separate proposal. However, it's important to call out here that macro implementations will be executed in a sandbox [like SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
+The details of how macro implementation modules are built and provided to the compiler will be left to a separate proposal. However, it's important to call out here that macro implementations will be executed in a sandbox [like SwiftPM plugins](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
 
 ## Tools for using and developing macros
 
 One of the primary concerns with macros is their ease of use and development: how do we know what a macro does to a program? How does one develop and debug a new macro?
 
-With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipules an AST or IR.
+With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipulates an AST or IR.
 
 The fact that macro implementations are separate programs actually makes it easier to develop macros. One can write unit tests for a macro implementation that provides the input source code for the macro (say, `#stringify(x + y)`), expands that macro using facilities from swift-syntax, and verifies that the resulting code is free of syntax errors and matches the expected result. Most of the "builtin" macro examples were developed this way in the [syntax macro test file](https://github.com/apple/swift-syntax/blob/main/Tests/SwiftSyntaxMacrosTest/MacroSystemTests.swift).
 
@@ -567,6 +565,8 @@ Expressions are just one place in the language where macros could be valuable. O
 
 ## Revision History
 
+* Revision after acceptance:
+  * Make the `ExpressionMacro.expansion(of:in:)` requirement non-`async`.
 * Revisions based on review feedback:
   * Switch `@expression` to `@freestanding(expression)` to align with the other macros proposals and vision document.
   * Make the `ExpressionMacro.expansion(of:in:)` requirement `async`.
