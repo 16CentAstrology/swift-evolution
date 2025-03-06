@@ -3,7 +3,7 @@
 * Proposal: [SE-0388](0388-async-stream-factory.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
 * Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)) ([review](https://forums.swift.org/t/se-0388-convenience-async-throwing-stream-makestream-methods/63139)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0388-convenience-async-throwing-stream-makestream-methods/63568)) 
 
@@ -14,7 +14,7 @@ instances which make the stream's continuation easier to access.
 
 ## Motivation
 
-With [SE-0314](https://github.com/apple/swift-evolution/blob/main/proposals/0314-async-stream.md)
+With [SE-0314](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0314-async-stream.md)
 we introduced `AsyncStream` and `AsyncThrowingStream` which act as a root
 `AsyncSequence` that the standard library offers.
 
